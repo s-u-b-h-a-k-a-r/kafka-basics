@@ -16,10 +16,8 @@ import org.slf4j.LoggerFactory;
 import com.kafka.learning.model.StockPrice;
 
 public class MetricsProducerReporter implements Runnable {
-    private final Producer<String, StockPrice> producer;
     private final Logger logger = LoggerFactory.getLogger(MetricsProducerReporter.class);
-
-    // Used to Filter just the metrics we want
+    private final Producer<String, StockPrice> producer;
     private final Set<String> metricsNameFilter = new HashSet<>();
 
     public MetricsProducerReporter(final Producer<String, StockPrice> producer) {
@@ -44,7 +42,6 @@ public class MetricsProducerReporter implements Runnable {
     public void run() {
         while (true) {
             final Map<MetricName, ? extends Metric> metrics = producer.metrics();
-
             displayMetrics(metrics);
             try {
                 Thread.sleep(3_000);
@@ -75,11 +72,9 @@ public class MetricsProducerReporter implements Runnable {
                 // Filter out metrics not in metricsNameFilter
                 .filter(metricNameEntry -> metricsNameFilter.contains(metricNameEntry.getKey().name()))
                 // Filter out metrics not in metricsNameFilter
-                .filter(metricNameEntry -> !Double.isInfinite(metricNameEntry.getValue().value())
-                        && !Double.isNaN(metricNameEntry.getValue().value()) && metricNameEntry.getValue().value() != 0)
+                .filter(metricNameEntry -> !Double.isInfinite(metricNameEntry.getValue().value()) && !Double.isNaN(metricNameEntry.getValue().value()) && metricNameEntry.getValue().value() != 0)
                 // Turn Map<MetricName,Metric> into TreeMap<String, MetricPair>
-                .map(entry -> new MetricPair(entry.getKey(), entry.getValue()))
-                .collect(Collectors.toMap(MetricPair::toString, it -> it, (a, b) -> a, TreeMap::new));
+                .map(entry -> new MetricPair(entry.getKey(), entry.getValue())).collect(Collectors.toMap(MetricPair::toString, it -> it, (a, b) -> a, TreeMap::new));
 
         // Output metrics
         final StringBuilder builder = new StringBuilder(255);
@@ -87,8 +82,7 @@ public class MetricsProducerReporter implements Runnable {
         metricsDisplayMap.entrySet().forEach(entry -> {
             MetricPair metricPair = entry.getValue();
             String name = entry.getKey();
-            builder.append(String.format(Locale.US, "%50s%25s\t\t%,-10.2f\t\t%s\n", name, metricPair.metricName.name(),
-                    metricPair.metric.value(), metricPair.metricName.description()));
+            builder.append(String.format(Locale.US, "%50s%25s\t\t%,-10.2f\t\t%s\n", name, metricPair.metricName.name(), metricPair.metric.value(), metricPair.metricName.description()));
         });
         builder.append("\n---------------------------------------\n");
         logger.info(builder.toString());

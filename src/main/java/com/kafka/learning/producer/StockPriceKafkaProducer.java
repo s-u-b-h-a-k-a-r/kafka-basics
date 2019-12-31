@@ -1,5 +1,6 @@
 package com.kafka.learning.producer;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -41,8 +42,10 @@ public class StockPriceKafkaProducer {
 
     private static void setupRetriesInFlightTimeout(Properties props) {
         // Only two in-flight messages per Kafka broker connection
+
         // - max.in.flight.requests.per.connection (default 5)
         props.put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, 1);
+
         // Set the number of retries - retries
         props.put(ProducerConfig.RETRIES_CONFIG, 3);
 
@@ -62,6 +65,7 @@ public class StockPriceKafkaProducer {
     }
 
     private static void setupBatchingAndCompression(final Properties props) {
+
         // Linger up to 100 ms before sending batch if size not met
         props.put(ProducerConfig.LINGER_MS_CONFIG, 100);
 
@@ -73,29 +77,18 @@ public class StockPriceKafkaProducer {
     }
 
     public static void main(String... args) throws Exception {
-        // Create Kafka Producer
         final Producer<String, StockPrice> producer = createProducer();
-        // Create StockSender list
         final List<StockSender> stockSenders = getStockSenderList(producer);
-
-        // Create a thread pool so every stock sender gets it own.
-        // Increase by 1 to fit metrics.
         final ExecutorService executorService = Executors.newFixedThreadPool(stockSenders.size() + 1);
-
-        // Run Metrics Producer Reporter which is runnable passing it the producer.
         executorService.submit(new MetricsProducerReporter(producer));
-
-        // Run each stock sender in its own thread.
         stockSenders.forEach(executorService::submit);
-
-        // Register nice shutdown of thread pool, then flush and close producer.
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             executorService.shutdown();
             try {
                 executorService.awaitTermination(200, TimeUnit.MILLISECONDS);
                 logger.info("Flushing and closing producer");
                 producer.flush();
-                producer.close(10_000, TimeUnit.MILLISECONDS);
+                producer.close(Duration.ofMillis(10_000));
             } catch (InterruptedException e) {
                 logger.warn("shutting down", e);
             }
@@ -104,37 +97,21 @@ public class StockPriceKafkaProducer {
 
     private static List<StockSender> getStockSenderList(final Producer<String, StockPrice> producer) {
         List<StockSender> senders = new ArrayList<>();
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("IBM", 100, 99),
-                new StockPrice("IBM", 50, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("SUN", 100, 99),
-                new StockPrice("SUN", 50, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("GOOG", 500, 99),
-                new StockPrice("GOOG", 400, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("INEL", 100, 99),
-                new StockPrice("INEL", 50, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("UBER", 1000, 99),
-                new StockPrice("UBER", 50, 0), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("ABC", 100, 99),
-                new StockPrice("ABC", 50, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("XYZ", 100, 99),
-                new StockPrice("XYZ", 50, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("DEF", 100, 99),
-                new StockPrice("DEF", 50, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("DEF", 100, 99),
-                new StockPrice("DEF", 50, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("AAA", 100, 99),
-                new StockPrice("AAA", 50, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("BBB", 100, 99),
-                new StockPrice("BBB", 50, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("CCC", 100, 99),
-                new StockPrice("CCC", 50, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("DDD", 100, 99),
-                new StockPrice("DDD", 50, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("EEE", 100, 99),
-                new StockPrice("EEE", 50, 10), producer, 1, 10));
-        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("FFF", 100, 99),
-                new StockPrice("FFF", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("IBM", 100, 99), new StockPrice("IBM", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("SUN", 100, 99), new StockPrice("SUN", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("GOOG", 500, 99), new StockPrice("GOOG", 400, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("INEL", 100, 99), new StockPrice("INEL", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("UBER", 1000, 99), new StockPrice("UBER", 50, 0), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("ABC", 100, 99), new StockPrice("ABC", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("XYZ", 100, 99), new StockPrice("XYZ", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("DEF", 100, 99), new StockPrice("DEF", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("DEF", 100, 99), new StockPrice("DEF", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("AAA", 100, 99), new StockPrice("AAA", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("BBB", 100, 99), new StockPrice("BBB", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("CCC", 100, 99), new StockPrice("CCC", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("DDD", 100, 99), new StockPrice("DDD", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("EEE", 100, 99), new StockPrice("EEE", 50, 10), producer, 1, 10));
+        senders.add(new StockSender(StockAppConstants.TOPIC, new StockPrice("FFF", 100, 99), new StockPrice("FFF", 50, 10), producer, 1, 10));
         return senders;
     }
-
 }

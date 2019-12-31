@@ -14,17 +14,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 public class StockSender implements Runnable {
-
+    private final Logger logger = LoggerFactory.getLogger(StockSender.class);
     private final StockPrice stockPriceHigh;
     private final StockPrice stockPriceLow;
     private final Producer<String, StockPrice> producer;
     private final int delayMinMs;
     private final int delayMaxMs;
-    private final Logger logger = LoggerFactory.getLogger(StockSender.class);
     private final String topic;
 
-    public StockSender(final String topic, final StockPrice stockPriceHigh, final StockPrice stockPriceLow,
-            final Producer<String, StockPrice> producer, final int delayMinMs, final int delayMaxMs) {
+    public StockSender(final String topic, final StockPrice stockPriceHigh, final StockPrice stockPriceLow, final Producer<String, StockPrice> producer, final int delayMinMs, final int delayMaxMs) {
         this.stockPriceHigh = stockPriceHigh;
         this.stockPriceLow = stockPriceLow;
         this.producer = producer;
@@ -58,12 +56,9 @@ public class StockSender implements Runnable {
         }
     }
 
-    private void displayRecordMetaData(final ProducerRecord<String, StockPrice> record,
-            final Future<RecordMetadata> future) throws InterruptedException, ExecutionException {
+    private void displayRecordMetaData(final ProducerRecord<String, StockPrice> record, final Future<RecordMetadata> future) throws InterruptedException, ExecutionException {
         final RecordMetadata recordMetadata = future.get();
-        logger.info(String.format("\n\t\t\tkey=%s, value=%s " + "\n\t\t\tsent to topic=%s part=%d off=%d at time=%s",
-                record.key(), record.value().toJson(), recordMetadata.topic(), recordMetadata.partition(),
-                recordMetadata.offset(), new Date(recordMetadata.timestamp())));
+        logger.info(String.format("\n\t\t\tkey=%s, value=%s " + "\n\t\t\tsent to topic=%s part=%d off=%d at time=%s", record.key(), record.value().toJson(), recordMetadata.topic(), recordMetadata.partition(), recordMetadata.offset(), new Date(recordMetadata.timestamp())));
     }
 
     private final int randomIntBetween(final Random random, final int max, final int min) {
